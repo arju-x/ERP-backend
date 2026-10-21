@@ -7,6 +7,7 @@ import dashboardRoutes from './dashboard.routes';
 import categoryRoutes from './category.routes';
 import userRoutes from './user.routes';
 import reportRoutes from './report.routes';
+import settingsRoutes from './settings.routes';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/users', userRoutes);
 router.use('/reports', reportRoutes);
+router.use('/settings', settingsRoutes);
 
 export default router;
