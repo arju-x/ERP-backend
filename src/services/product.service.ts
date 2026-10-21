@@ -37,13 +37,34 @@ export async function createProduct(data: CreateProductInput, userId: string) {
   return product;
 }
 
-export async function getProducts(filters: {
+export interface GetProductsFilters {
   search?: string;
   status?: string;
+  category?: string;
+  brand?: string;
+  unit?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
   page?: number;
   pageSize?: number;
-}) {
-  const { search, status, page = 1, pageSize = 20 } = filters;
+}
+
+export async function getProducts(filters: GetProductsFilters) {
+  const {
+    search,
+    status,
+    category,
+    brand,
+    unit,
+    minPrice,
+    maxPrice,
+    sortBy,
+    sortOrder = 'desc',
+    page = 1,
+    pageSize = 20,
+  } = filters;
   const query: mongoose.FilterQuery<typeof Product> = { isDeleted: false };
 
   if (search) {
@@ -59,13 +80,44 @@ export async function getProducts(filters: {
     query.currentStock = { $gt: 0 };
   } else if (status === 'out_of_stock') {
     query.currentStock = { $lte: 0 };
+  } else if (status === 'in_stock') {
+    query.$expr = { $gt: ['$currentStock', '$minStockThreshold'] };
   } else if (status && ['active', 'inactive', 'archived'].includes(status)) {
     query.status = status;
   }
 
+  if (category) {
+    query.category = category;
+  }
+
+  if (brand) {
+    query.brand = { $regex: brand, $options: 'i' };
+  }
+
+  if (unit) {
+    query.unit = unit;
+  }
+
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    const priceQuery: Record<string, number> = {};
+    if (minPrice !== undefined && !isNaN(minPrice)) priceQuery.$gte = minPrice;
+    if (maxPrice !== undefined && !isNaN(maxPrice)) priceQuery.$lte = maxPrice;
+    if (Object.keys(priceQuery).length > 0) {
+      query.sellingPrice = priceQuery;
+    }
+  }
+
+  const sortOptions: Record<string, 1 | -1> = {};
+  const allowedSortFields = ['name', 'sellingPrice', 'purchaseCost', 'currentStock', 'createdAt'];
+  if (sortBy && allowedSortFields.includes(sortBy)) {
+    sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
+  } else {
+    sortOptions.createdAt = -1;
+  }
+
   const total = await Product.countDocuments(query);
   const products = await Product.find(query)
-    .sort({ createdAt: -1 })
+    .sort(sortOptions)
     .skip((page - 1) * pageSize)
     .limit(pageSize)
     .lean();

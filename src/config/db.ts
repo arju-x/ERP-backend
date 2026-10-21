@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { config } from './env';
+import '../models';
 
 // NOTE: MongoDB transactions require a replica set.
 // Use docker-compose.yml to spin up a 3-node replica set for local development.

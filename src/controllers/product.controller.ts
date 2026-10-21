@@ -5,10 +5,30 @@ import { createProductSchema, updateProductSchema } from '../validation/product.
 import * as ProductService from '../services/product.service';
 
 export const listProducts = asyncHandler(async (req: Request, res: Response) => {
-  const { search, status, page, pageSize } = req.query;
+  const {
+    search,
+    status,
+    category,
+    brand,
+    unit,
+    minPrice,
+    maxPrice,
+    sortBy,
+    sortOrder,
+    page,
+    pageSize,
+  } = req.query;
+
   const result = await ProductService.getProducts({
     search: search as string,
     status: status as string,
+    category: category as string,
+    brand: brand as string,
+    unit: unit as string,
+    minPrice: minPrice !== undefined && minPrice !== '' ? Number(minPrice) : undefined,
+    maxPrice: maxPrice !== undefined && maxPrice !== '' ? Number(maxPrice) : undefined,
+    sortBy: sortBy as string,
+    sortOrder: sortOrder === 'asc' ? 'asc' : 'desc',
     page: page ? Number(page) : 1,
     pageSize: pageSize ? Number(pageSize) : 20,
   });

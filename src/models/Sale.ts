@@ -5,6 +5,7 @@ export type SalePaymentMethod = 'cash' | 'upi' | 'card' | 'bank_transfer' | 'cre
 export type SaleStatus = 'draft' | 'confirmed' | 'cancelled' | 'returned';
 
 export interface ISaleItem {
+  _id?: mongoose.Types.ObjectId;
   product: mongoose.Types.ObjectId;
   productName: string;
   sku: string;
