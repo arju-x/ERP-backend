@@ -82,8 +82,12 @@ export async function getProducts(filters: GetProductsFilters) {
     query.currentStock = { $lte: 0 };
   } else if (status === 'in_stock') {
     query.$expr = { $gt: ['$currentStock', '$minStockThreshold'] };
-  } else if (status && ['active', 'inactive', 'archived'].includes(status)) {
-    query.status = status;
+  } else if (status === 'active') {
+    query.status = 'active';
+  } else if (status === 'inactive') {
+    query.status = { $in: ['inactive', 'archived'] };
+  } else if (status === 'archived') {
+    query.status = 'archived';
   }
 
   if (category) {
@@ -122,8 +126,18 @@ export async function getProducts(filters: GetProductsFilters) {
     .limit(pageSize)
     .lean();
 
+  const productIds = products.map((product) => product._id);
+  const productsWithSales = productIds.length
+    ? await Sale.distinct('items.product', { 'items.product': { $in: productIds } })
+    : [];
+  const productsWithSalesSet = new Set(productsWithSales.map((id) => String(id)));
+  const productsWithHistory = products.map((product) => ({
+    ...product,
+    hasSalesHistory: productsWithSalesSet.has(String(product._id)),
+  }));
+
   return {
-    products,
+    products: productsWithHistory,
     pagination: {
       total,
       page,
@@ -191,14 +205,13 @@ export async function deleteProduct(id: string) {
     throw Object.assign(new Error('Product not found'), { statusCode: 404 });
   }
 
-  // Check if used in any confirmed sale
+  // Preserve products referenced by any sale record, including returned sales.
   const usedInSale = await Sale.findOne({
     'items.product': new mongoose.Types.ObjectId(id),
-    status: 'confirmed',
   });
   if (usedInSale) {
     throw Object.assign(
-      new Error('Cannot delete product that has been sold. Archive it instead.'),
+      new Error('Cannot delete product that has been sold. Deactivate it instead.'),
       { statusCode: 409 }
     );
   }

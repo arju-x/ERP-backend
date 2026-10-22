@@ -15,7 +15,9 @@ export const createProductSchema = z.object({
   description: z.string().optional(),
 });
 
-export const updateProductSchema = createProductSchema.partial();
+export const updateProductSchema = createProductSchema.partial().extend({
+  status: z.enum(['active', 'inactive']).optional(),
+});
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;

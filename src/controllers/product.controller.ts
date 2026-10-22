@@ -79,3 +79,4 @@ export const deleteProduct = asyncHandler(async (req: Request, res: Response) =>
   await ProductService.deleteProduct(req.params.id);
   sendSuccess(res, null, 'Product deleted successfully');
 });
+
