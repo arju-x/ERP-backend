@@ -20,7 +20,7 @@ app.use(helmet());
 // CORS — credentials required for refresh token cookie
 app.use(
   cors({
-    origin: config.clientUrl,
+    origin: config.clientUrls,
     credentials: true,
   })
 );

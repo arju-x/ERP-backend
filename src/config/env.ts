@@ -12,7 +12,11 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  CLIENT_URL: z.string().url('CLIENT_URL must be a valid URL'),
+  CLIENT_URL: z
+    .string()
+    .min(1, 'CLIENT_URL is required')
+    .transform((value) => value.split(',').map((origin) => origin.trim()))
+    .pipe(z.array(z.string().url('Each CLIENT_URL entry must be a valid URL'))),
   COOKIE_DOMAIN: z.string().optional(),
 });
 
@@ -32,7 +36,7 @@ export const config = {
   jwtRefreshSecret: parsed.data.JWT_REFRESH_SECRET,
   jwtRefreshExpiresIn: parsed.data.JWT_REFRESH_EXPIRES_IN,
   nodeEnv: parsed.data.NODE_ENV,
-  clientUrl: parsed.data.CLIENT_URL,
+  clientUrls: parsed.data.CLIENT_URL,
   cookieDomain: parsed.data.COOKIE_DOMAIN,
   isProduction: parsed.data.NODE_ENV === 'production',
   isDevelopment: parsed.data.NODE_ENV === 'development',
