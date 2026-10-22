@@ -37,7 +37,9 @@ export const config = {
   jwtRefreshExpiresIn: parsed.data.JWT_REFRESH_EXPIRES_IN,
   nodeEnv: parsed.data.NODE_ENV,
   clientUrls: parsed.data.CLIENT_URL,
-  cookieDomain: parsed.data.COOKIE_DOMAIN,
+  // A host-only refresh cookie works for cross-origin API requests; do not
+  // attach a local development domain to production cookies.
+  cookieDomain: parsed.data.NODE_ENV === 'production' ? undefined : parsed.data.COOKIE_DOMAIN,
   isProduction: parsed.data.NODE_ENV === 'production',
   isDevelopment: parsed.data.NODE_ENV === 'development',
 };

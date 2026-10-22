@@ -12,12 +12,15 @@ import { sendSuccess, sendError } from '../utils/response';
 import { config } from '../config/env';
 
 const REFRESH_COOKIE = 'refreshToken';
-const COOKIE_OPTIONS = {
+const COOKIE_SCOPE_OPTIONS = {
   httpOnly: true,
   secure: config.isProduction,
-  sameSite: 'strict' as const,
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  sameSite: (config.isProduction ? 'none' : 'strict') as 'none' | 'strict',
   ...(config.cookieDomain && { domain: config.cookieDomain }),
+};
+const COOKIE_OPTIONS = {
+  ...COOKIE_SCOPE_OPTIONS,
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
 /**
@@ -126,12 +129,7 @@ export const logoutController = asyncHandler(async (req: Request, res: Response)
       // Ignore decode errors — still clear the cookie
     }
   }
-  res.clearCookie(REFRESH_COOKIE, {
-    httpOnly: true,
-    secure: config.isProduction,
-    sameSite: 'strict',
-    ...(config.cookieDomain && { domain: config.cookieDomain }),
-  });
+  res.clearCookie(REFRESH_COOKIE, COOKIE_SCOPE_OPTIONS);
   sendSuccess(res, null, 'Logged out successfully');
 });
 
