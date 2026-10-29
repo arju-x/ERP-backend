@@ -3,6 +3,7 @@ import { Sale } from '../models/Sale';
 import { Product } from '../models/Product';
 import { StockMovement } from '../models/StockMovement';
 import { BusinessSettings } from '../models/BusinessSettings';
+import { CustomerReturn } from '../models/CustomerReturn';
 import { CreateSaleInput } from '../validation/sale.validation';
 
 async function generateInvoiceNumber(): Promise<string> {
@@ -169,6 +170,68 @@ export async function getSaleById(id: string) {
     throw Object.assign(new Error('Sale not found'), { statusCode: 404 });
   }
   return sale;
+}
+
+export async function cancelSale(id: string, userId: string) {
+  const session = await mongoose.startSession();
+  let cancelledSale: Awaited<ReturnType<typeof Sale.findById>> = null;
+
+  try {
+    await session.withTransaction(async () => {
+      const sale = await Sale.findById(id).session(session);
+      if (!sale) {
+        throw Object.assign(new Error('Sale not found'), { statusCode: 404 });
+      }
+      if (sale.status !== 'confirmed') {
+        throw Object.assign(new Error('Only confirmed bills can be cancelled'), { statusCode: 400 });
+      }
+      const hasReturns = await CustomerReturn.exists({ originalSale: sale._id, status: { $ne: 'rejected' } }).session(session);
+      if (hasReturns) {
+        throw Object.assign(new Error('A bill with processed returns cannot be cancelled'), { statusCode: 400 });
+      }
+
+      const updatedSale = await Sale.findOneAndUpdate(
+        { _id: sale._id, status: 'confirmed' },
+        {
+          $set: {
+            status: 'cancelled',
+            cancelledBy: new mongoose.Types.ObjectId(userId),
+            cancelledAt: new Date(),
+            cancellationReason: 'Cancelled from Sales History',
+          },
+        },
+        { new: true, session },
+      );
+      if (!updatedSale) {
+        throw Object.assign(new Error('This bill has already been changed'), { statusCode: 409 });
+      }
+
+      for (const item of sale.items) {
+        const product = await Product.findByIdAndUpdate(
+          item.product,
+          { $inc: { currentStock: item.quantity } },
+          { new: true, session },
+        );
+        if (!product) continue;
+        const previousStock = product.currentStock - item.quantity;
+        await StockMovement.create([{
+          product: product._id,
+          movementType: 'stock_adjustment',
+          quantity: item.quantity,
+          previousStock,
+          newStock: product.currentStock,
+          referenceType: 'SaleCancellation',
+          referenceId: sale._id,
+          reason: `Cancelled sale: ${sale.invoiceNumber}`,
+          createdBy: new mongoose.Types.ObjectId(userId),
+        }], { session });
+      }
+      cancelledSale = updatedSale;
+    });
+    return cancelledSale;
+  } finally {
+    await session.endSession();
+  }
 }
 
 export async function getDashboardStats() {

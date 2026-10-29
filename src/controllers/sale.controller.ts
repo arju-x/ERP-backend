@@ -31,6 +31,11 @@ export const getSale = asyncHandler(async (req: Request, res: Response) => {
   sendSuccess(res, sale);
 });
 
+export const cancelSale = asyncHandler(async (req: Request, res: Response) => {
+  const sale = await SaleService.cancelSale(req.params.id, req.user!.userId);
+  sendSuccess(res, sale, 'Bill cancelled and stock restored');
+});
+
 export const getDashboardStats = asyncHandler(async (_req: Request, res: Response) => {
   const stats = await SaleService.getDashboardStats();
   const recent = await SaleService.getRecentSales(5);
