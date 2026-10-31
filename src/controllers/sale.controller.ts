@@ -32,7 +32,12 @@ export const getSale = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const cancelSale = asyncHandler(async (req: Request, res: Response) => {
-  const sale = await SaleService.cancelSale(req.params.id, req.user!.userId);
+  const { reason } = req.body as { reason?: string };
+  if (!reason || !reason.trim()) {
+    res.status(400).json({ success: false, message: 'Cancellation reason is required' });
+    return;
+  }
+  const sale = await SaleService.cancelSale(req.params.id, req.user!.userId, reason.trim());
   sendSuccess(res, sale, 'Bill cancelled and stock restored');
 });
 

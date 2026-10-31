@@ -172,7 +172,7 @@ export async function getSaleById(id: string) {
   return sale;
 }
 
-export async function cancelSale(id: string, userId: string) {
+export async function cancelSale(id: string, userId: string, reason: string) {
   const session = await mongoose.startSession();
   let cancelledSale: Awaited<ReturnType<typeof Sale.findById>> = null;
 
@@ -197,7 +197,7 @@ export async function cancelSale(id: string, userId: string) {
             status: 'cancelled',
             cancelledBy: new mongoose.Types.ObjectId(userId),
             cancelledAt: new Date(),
-            cancellationReason: 'Cancelled from Sales History',
+            cancellationReason: reason,
           },
         },
         { new: true, session },
